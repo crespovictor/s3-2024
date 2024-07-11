@@ -33,11 +33,17 @@ class LocalMove:
     ...
 
 class Solution:
+
+    def __init__(self, problem: Problem) -> None:
+        self.cost = None  # Should we store the cost? should we calculate every time with self.objective?
+        self.problem = problem
+        self.u = [] # this is obviously temporary
+
     def output(self) -> str:
         """
         Generate the output string for this solution
         """
-        raise NotImplementedError
+        return "\n".join(map(str, self.u))
 
     def copy(self) -> Solution:
         """
@@ -46,20 +52,33 @@ class Solution:
         Note: changes to the copy must not affect the original
         solution. However, this does not need to be a deepcopy.
         """
+        # Check the TCP example. This is low-hanging fruit
         raise NotImplementedError
 
     def is_feasible(self) -> bool:
         """
         Return whether the solution is feasible or not
         """
-        raise NotImplementedError
+        # the length is 10, which is T (available timeslots)
+        # and all u_i in u are smaller than M
+        return len(self.u) == self.problem.T and all(
+            map(lambda x: (0 <= x < self.problem.M), self.u))
 
     def objective(self) -> Optional[Objective]:
         """
         Return the objective value for this solution if defined, otherwise
         should return None
         """
-        raise NotImplementedError
+        rp = [sum(self.problem.a[p][m] * self.problem.d[m] for m in range(self.problem.M)) \
+              for p in range(self.problem.P)]
+
+        cost = 0
+        for t in range(1, self.problem.T + 1):
+            for p in range(self.problem.P):
+                actual_demand = sum(self.problem.a[p][self.u[i]] for i in range(t))
+                target_demand = t * rp[p] / self.problem.T
+                cost += (target_demand - actual_demand) ** 2
+        return cost
 
     def lower_bound(self) -> Optional[Objective]:
         """
@@ -98,7 +117,7 @@ class Solution:
         the solution.
         """
         raise NotImplementedError
-            
+
     def heuristic_add_move(self) -> Optional[Component]:
         """
         Return the next component to be added based on some heuristic
@@ -153,19 +172,36 @@ class Solution:
         """
         raise NotImplementedError
 
+
 class Problem:
     @classmethod
     def from_textio(cls, f: TextIO) -> Problem:
         """
         Create a problem from a text I/O source `f`
         """
-        raise NotImplementedError
+        data = f.readlines()
+        M = int(data[0].split()[0])
+        P = int(data[0].split()[1])
+        d = [int(j) for j in data[1].split()]
+        A = []
+        for p in range(2,P):
+            x = data[p].splitlines()[0].split()
+            A.append([int(i) for i in x])
+
+        return cls(M, P, d, A)
+
+    def __init__(self, M, P, d, A) -> None:
+        self.M = M
+        self.P = P
+        self.d = d
+        self.A = A
+        self.T = sum(d)
 
     def empty_solution(self) -> Solution:
         """
         Create an empty solution (i.e. with no components).
         """
-        raise NotImplementedError
+        return None
 
 
 if __name__ == '__main__':
