@@ -33,17 +33,25 @@ class Component:
         return self.model_index
 
 class LocalMove:
-
-    # define a swap  
+    # define a swap
     i: int
     j: int
 
 class Solution:
-
     def __init__(self, problem: Problem) -> None:
-        self.cost = None  # Should we store the cost? should we calculate every time with self.objective?
         self.problem = problem
-        self.u = [] # this is obviously temporary
+        self.u = self.components()
+
+        rp = [sum(self.problem.a[p][m] * self.problem.d[m] for m in range(self.problem.M)) \
+              for p in range(self.problem.P)]
+
+        cost = 0
+        for t in range(1, self.problem.T + 1):
+            for p in range(self.problem.P):
+                actual_demand = sum(self.problem.a[p][self.u[i]] for i in range(t))
+                target_demand = t * rp[p] / self.problem.T
+                cost += (target_demand - actual_demand) ** 2
+        self.cost = cost # get it with self.objective
 
     def output(self) -> str:
         """
@@ -63,7 +71,6 @@ class Solution:
         new_solution.u = self.u[:]  # copy of the sequence.
         new_solution.cost = self.cost  # also the cost
         return new_solution
-        #raise NotImplementedError
 
     def is_feasible(self) -> bool:
         """
@@ -79,16 +86,9 @@ class Solution:
         Return the objective value for this solution if defined, otherwise
         should return None
         """
-        rp = [sum(self.problem.a[p][m] * self.problem.d[m] for m in range(self.problem.M)) \
-              for p in range(self.problem.P)]
-
-        cost = 0
-        for t in range(1, self.problem.T + 1):
-            for p in range(self.problem.P):
-                actual_demand = sum(self.problem.a[p][self.u[i]] for i in range(t))
-                target_demand = t * rp[p] / self.problem.T
-                cost += (target_demand - actual_demand) ** 2
-        return cost
+        if self.is_feasible():
+            return self.cost
+        return None
 
     def lower_bound(self) -> Optional[Objective]:
         """
@@ -207,7 +207,10 @@ class Solution:
         """
         Returns an iterable to the components of a solution
         """
-        return [Component(i) for i in range(self.problem.M)]
+        comp = []
+        for i in range(self.problem.M):
+            comp.extend([i for _ in range(self.problem.d[i])])
+        return comp
 
 
 
@@ -240,7 +243,7 @@ class Problem:
         """
         Create an empty solution (i.e. with no components).
         """
-        return None
+        return Solution(self)
 
 
 if __name__ == '__main__':
