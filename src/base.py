@@ -19,6 +19,7 @@ from __future__ import annotations
 
 from typing import TextIO, Optional, Any
 from collections.abc import Iterable, Hashable
+import random
 
 import logging
 
@@ -41,16 +42,37 @@ class Solution:
     def __init__(self, problem: Problem) -> None:
         self.problem = problem
         self.u = self.components()
+        random.shuffle(self.u)
 
         rp = [sum(self.problem.a[p][m] * self.problem.d[m] for m in range(self.problem.M)) \
               for p in range(self.problem.P)]
 
-        cost = 0
-        for t in range(1, self.problem.T + 1):
+        self.S = []
+        for _ in range(self.problem.T):
+            self.S.append([0 for _ in self.problem.P])
+
+        for t in self.problem.T:
             for p in range(self.problem.P):
-                actual_demand = sum(self.problem.a[p][self.u[i]] for i in range(t))
-                target_demand = t * rp[p] / self.problem.T
-                cost += (target_demand - actual_demand) ** 2
+                if t == 0:
+                    self.S[t][p] = self.problem.a[p]
+                else:
+                    self.S[t][p] = self.S[t-1][p] + self.problem.a[p][self.u[t]]
+
+        self.R = []
+        for t in range(self.problem.T):
+            for p in range(self.problem.P):
+                self.R[t][p] = (t+1)* rp[p]
+
+        self.X = []
+        for t in range(self.problem.T):
+            for p in range(self.problem.P):
+                self.X[t][p] = self.R[t][p] - self.S[t][p]
+        
+        cost = 0
+        for t in range(self.problem.T):
+            for p in range(self.problem.P):
+                cost += self.X[t][p] ** 2
+
         self.cost = cost # get it with self.objective
 
     def output(self) -> str:
@@ -211,8 +233,6 @@ class Solution:
         for i in range(self.problem.M):
             comp.extend([i for _ in range(self.problem.d[i])])
         return comp
-
-
 
 
 class Problem:
