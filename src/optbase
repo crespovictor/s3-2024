@@ -98,7 +98,13 @@ class Solution:
         Return the lower bound value for this solution if defined,
         otherwise return None.
         """
-        raise NotImplementedError
+        lower_bound_cost = 0
+        for p in range(self.problem.P):
+            for m in range(self.problem.M):
+                lower_bound_cost += 0.5 * (self.rp[p] - self.problem.A[p][m]) ** 2 * self.problem.d[m]
+
+        return lower_bound_cost
+        #raise NotImplementedError
 
     def add_moves(self) -> Iterable[Component]:
         """
